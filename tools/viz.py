@@ -403,7 +403,8 @@ def plot_metrics(agg_df, metrics, datasets=None, models=None, predictors=None,
             if p in long_df.predictor.unique():
                 sns.FacetGrid(long_df[(long_df['predictor'] == p) & (long_df['model'] == m)], 
                     col='variable', **kwargs) \
-                    .map(sns_function, 'ds_task', 'value') \
+                    .map(sns_function, 'ds_task', 'value', 
+                         order=long_df['ds_task'].unique()) \
                     .set_xticklabels(rotation=90) \
                     .set_xlabels('') \
                     .set_titles('{col_name}') \
