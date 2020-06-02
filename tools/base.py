@@ -6,7 +6,7 @@ from copy import deepcopy
 import collections
 import pandas as pd
 import numpy as np
-api = Neuroscout(email='roberta.rocca@austin.utexas.edu', password='tipoDiTopo2807')
+api = Neuroscout()
 
 RESULTS_DIR = Path('/media/hyperdrive/neuroscout-cli/output/')
 

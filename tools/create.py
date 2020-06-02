@@ -2,7 +2,7 @@ import warnings
 import time
 from .base import flatten_collection
 from pyns import Neuroscout
-api = Neuroscout(email='roberta.rocca@austin.utexas.edu', password='tipoDiTopo2807')
+api = Neuroscout()
 
 ALL_DATASETS = {} 
 for dataset in api.datasets.get():
