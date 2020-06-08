@@ -292,7 +292,9 @@ def plot_analysis_grid(analyses, models=None, datasets=None, contrasts=None,
                 if m_idx==0:
                     title = d.split('_')[0]
                 else:
-                    title = '+' + m.split('+')[-1]
+                    title = m[len(unique_model_names[m_idx-1]):]
+                    if len(title) > 40:
+                        title = title[:40] + '...'
                 if (width > 1):
                     ax = axarr[d_idx, m_idx]
                 else:
