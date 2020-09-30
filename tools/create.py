@@ -97,7 +97,7 @@ def create_single_models(predictors, confounds, control=None, datasets=None, tra
     return models
 
 
-def create_set_models(predictors, confounds, name, datasets=None):
+def create_set_models(predictors, confounds, name, transformations=None, datasets=None):
     """ Create same model with set of predictors + confounds for all datasets """
     models = {}
     if datasets is None:
@@ -112,6 +112,7 @@ def create_set_models(predictors, confounds, name, datasets=None):
                     dataset_name=ds_name, 
                     predictor_names=confounds + predictors,
                     task=task_id,
+                    transformations=transformations,
                     hrf_variables=predictors,
                     dummy_contrasts='hrf')
             except ValueError as e: # print out error if build fails

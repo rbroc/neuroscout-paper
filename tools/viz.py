@@ -292,7 +292,9 @@ def plot_analysis_grid(analyses, models=None, datasets=None, contrasts=None,
                 if m_idx==0:
                     title = d.split('_')[0]
                 else:
-                    title = '+' + m.split('+')[-1]
+                    title = m[len(unique_model_names[m_idx-1]):]
+                    if len(title) > 40:
+                        title = title[:40] + '...'
                 if (width > 1):
                     ax = axarr[d_idx, m_idx]
                 else:
@@ -403,7 +405,8 @@ def plot_metrics(agg_df, metrics, datasets=None, models=None, predictors=None,
             if p in long_df.predictor.unique():
                 sns.FacetGrid(long_df[(long_df['predictor'] == p) & (long_df['model'] == m)], 
                     col='variable', **kwargs) \
-                    .map(sns_function, 'ds_task', 'value') \
+                    .map(sns_function, 'ds_task', 'value', 
+                         order=long_df['ds_task'].unique()) \
                     .set_xticklabels(rotation=90) \
                     .set_xlabels('') \
                     .set_titles('{col_name}') \
