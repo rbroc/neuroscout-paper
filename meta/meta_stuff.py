@@ -33,7 +33,7 @@ def download_maps(effect, neuroscout_ids,
     }
 
     #  Make directories if needed
-    analysis_dir = Path('./neuroscout')
+    analysis_dir = Path('./analyses')
     analysis_dir.mkdir(exist_ok=True)
     img_dir = Path('./images')
     img_dir.mkdir(exist_ok=True)
@@ -113,7 +113,7 @@ def meta_analyze(effect, ids=None, name=None, method='DL', camel_case=True, meas
         var_maps = [vm for vm in var_maps if re.search(patt, str(vm))]
 
     if exclude is not None:
-        analysis_dir = Path('./neuroscout')
+        analysis_dir = Path('./analyses')
         def filter_analyses(f):
             a_id = re.search('analysis-(\w{5})', str(f)).group(1)
             filename = analysis_dir / f'{a_id}.json'
@@ -121,7 +121,7 @@ def meta_analyze(effect, ids=None, name=None, method='DL', camel_case=True, meas
             if not filename.exists():
                 filename = analysis_dir / f'{a_id} (Case Conflict).json'
             analysis = json.load(open(filename, 'r'))
-            return analysis['task_name']not in exclude
+            return analysis['model']['Input']['Task'] not in exclude
         beta_maps = [f for f in beta_maps if filter_analyses(f)]
 
     # drop analyses that don't have both maps
@@ -228,7 +228,7 @@ def process_set(name, effects=None, json_data=None, download=True, analyze=True,
             fig, axes = plt.subplots(n_eff, 1, figsize=(14, n_eff*2.5))
             if n_eff == 1:
                 axes = [axes]
-            defaults = dict(threshold=3.3, vmax=None, display_mode='z', cut_coords=8)
+            defaults = dict(threshold=3.3, vmax=None, display_mode='z', cut_coords=[-24, -12, 0, 12, 24, 36, 48, 60])
             defaults.update(plot_kwargs)
             for i, img in enumerate(eff_imgs):
                 plotting.plot_stat_map(img, axes=axes[i], title=fx_names[i], **defaults)
