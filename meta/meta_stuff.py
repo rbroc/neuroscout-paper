@@ -12,6 +12,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import requests
 
+from nimare.dataset import Dataset
+from nimare.io import convert_neurovault_to_dataset
+from nimare.meta import ibma
 import nibabel as nb
 from pyns import Neuroscout
 from nilearn.datasets import load_mni152_template
@@ -20,9 +23,9 @@ from nilearn import masking
 import nilearn.plotting as plotting
 
 
-def download_maps(effect, neuroscout_ids,
-                  map_types=['variance', 'univariate-beta map'],
-                  name=None, overwrite=False, camel_case=True):
+def create_dset(effect, neuroscout_ids,
+                map_types=['variance', 'univariate-beta map'],
+                name=None, overwrite=False, camel_case=True):
     """Download maps from NeuroVault and save them locally,
     along with relevant metadata from NeuroScout."""
 
@@ -35,14 +38,13 @@ def download_maps(effect, neuroscout_ids,
     #  Make directories if needed
     analysis_dir = Path('./analyses')
     analysis_dir.mkdir(exist_ok=True)
-    img_dir = Path('./images')
-    img_dir.mkdir(exist_ok=True)
-    md_dir = Path('./metadata')
-    md_dir.mkdir(exist_ok=True)
-    ma_dir = Path('./ma-maps')
-    ma_dir.mkdir(exist_ok=True)
+    ds_dir = Path('./datasets')
+    ds_dir.mkdir(exist_ok=True)
+    # ma_dir = Path('./ma-maps')
+    # ma_dir.mkdir(exist_ok=True)
 
     ns = Neuroscout()
+    nv_colls = {}
 
     for id_ in neuroscout_ids:
         
@@ -50,46 +52,26 @@ def download_maps(effect, neuroscout_ids,
         if filename.exists() and not overwrite:
             analysis = json.load(open(filename, 'r'))
         else:
-            analysis = ns.analyses.full(id_)
+            analysis = ns.analyses.get_full(id_)
             json.dump(analysis, open(filename, 'w'))
 
-        if not analysis['neurovault_collections']:
+        if not analysis.get('neurovault_collections'):
             continue
 
-        # Store key metadata, including number of subject
-        nv_coll = analysis['neurovault_collections'][-1]['collection_id']
-        metadata['analyses'][id_] = {
-            'neurovault_collection_id': nv_coll,
-            'n_subjects': len(analysis['model']['Input']['Subject'])
-        }
+        nv_colls[analysis['hash_id']] = analysis['neurovault_collections'][-1]['collection_id']
+    
+    mask_img = masking.compute_gray_matter_mask(load_mni152_template())
 
-        # Get NV collection image data
-        nv_url = f'https://neurovault.org/api/collections/{nv_coll}/images/?format=json'
-        images = requests.get(nv_url).json()
+    dset = convert_neurovault_to_dataset(
+            nv_colls,
+            snake_to_camel(effect),
+            img_dir=Path('./images').absolute(),
+            mask=mask_img,
+    )
 
-        #  Save images
-        for img in images['results']:
+    dset.save(ds_dir / f"{effect}_dset.pkl")
 
-            cc_name = snake_to_camel(effect) if camel_case else effect
-
-            if not ((img['name'] == cc_name or img['name'].startswith(f"{cc_name}_stat"))
-                    and img['map_type'] in map_types):
-                continue
-
-            filename = img_dir / ('analysis-{}_'.format(id_) + Path(img['file']).name)
-            
-            if not filename.exists():
-                r = requests.get(img['file'])
-                with open(filename, 'wb') as f:
-                    f.write(r.content)
-
-    # Save metadata to file
-    md_dir = Path('./metadata')
-    md_dir.mkdir(exist_ok=True)
-    prefix = f'{name}_' if name is not None else ''
-    filename = md_dir / f'{prefix}{effect}.json'
-    with open(filename, 'w') as f:
-        json.dump(metadata, f)
+    return dset
 
 
 def snake_to_camel(text):
@@ -103,8 +85,8 @@ def meta_analyze(effect, ids=None, name=None, method='DL', camel_case=True, meas
                  stat='z'):
     # Read images into arrays
     eff_name = snake_to_camel(effect) if camel_case else effect
-    beta_maps = sorted(list(Path('.').glob(f'images/*{eff_name}*effect*')))
-    var_maps = sorted(list(Path('.').glob(f'images/*{eff_name}*variance*')))
+    beta_maps = sorted(list(Path('.').glob(f'images2/*{eff_name}*effect*')))
+    var_maps = sorted(list(Path('.').glob(f'images2/*{eff_name}*variance*')))
 
     # Optionally filter candidate images on analysis IDs
     if ids is not None:
@@ -183,7 +165,7 @@ def meta_analyze(effect, ids=None, name=None, method='DL', camel_case=True, meas
     return ma_img
 
 
-def process_set(name, effects=None, json_data=None, download=True, analyze=True,
+def process_set(name, effects=None, json_data=None, analyze=True, download=True,
                 plot=True, camel_case=True, overwrite=False, stat='z',
                 exclude=None, analysis_kwargs=None, plot_kwargs=None, save_maps=True):
 
@@ -205,19 +187,47 @@ def process_set(name, effects=None, json_data=None, download=True, analyze=True,
                 effects[c].extend(children.values())
 
     # Download maps
+    dsets = {}
     if download:
         for effect, ids in effects.items():
             print(f"Downloading maps for effect '{effect}'...")
-            download_maps(effect, ids, name=name, overwrite=overwrite, camel_case=camel_case)
+            dsets[effect] = create_dset(effect, ids, name=name, overwrite=overwrite, camel_case=camel_case)
+
+    else:
+        dsets = {effect: Dataset.load(f'./datasets/{effect}_dset.pkl') for effect in effects}
 
     if analyze:
+        if exclude is not None:
+            analysis_dir = Path('./analyses')
+            def filter_analyses(ids):
+                filtered_ids = []
+                for id_ in ids:
+                    a_id = re.search('study-(\w{5})-.*', str(id_)).group(1)
+                    filename = analysis_dir / f'{a_id}.json'
+                    # Ugh
+                    if not filename.exists():
+                        filename = analysis_dir / f'{a_id} (Case Conflict).json'
+                    analysis = json.load(open(filename, 'r'))
+                    if analysis['model']['Input']['Task'] not in exclude:
+                        filtered_ids.append(id_)
+                return filtered_ids
+            dsets = {
+                effect: dset.slice(filter_analyses(dset.ids)) for effect, dset in dsets.items()
+            }
+
+        meta_results = {
+            effect: ibma.DerSimonianLaird().fit(dset) for effect, dset in dsets.items()
+        }
+        eff_imgs = [meta_results[fx].get_map(stat) for fx in sorted(list(meta_results.keys()))]
         fx_names = sorted(list(effects.keys()))
         # Meta-analyze all the things
-        eff_imgs = [meta_analyze(fxn, effects[fxn], name=name, camel_case=camel_case,
+        eff_imgs2 = [meta_analyze(fxn, effects[fxn], name=name, camel_case=camel_case,
                                  stat=stat, exclude=exclude, **analysis_kwargs)
                     for fxn in fx_names]
 
         if save_maps:
+            ma_dir = Path('./ma-maps')
+            ma_dir.mkdir(exist_ok=True)
             for i, fxn in enumerate(fx_names):
                 ma_path = Path('.') / 'ma-maps' / (name + '-' + fxn + ".nii.gz")
                 eff_imgs[i].to_filename(ma_path)
