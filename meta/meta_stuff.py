@@ -63,9 +63,14 @@ def create_dset(
 
     mask_img = masking.compute_gray_matter_mask(load_mni152_template())
 
+    if camel_case:
+        effect_name_mapping = {snake_to_camel(effect): snake_to_camel(effect)}
+    else:
+        effect_name_mapping = {effect: effect}
+
     dset = convert_neurovault_to_dataset(
         nv_colls,
-        {snake_to_camel(effect): snake_to_camel(effect)},
+        effect_name_mapping,
         img_dir=str(Path("./images").absolute()),
         mask=mask_img,
     )
