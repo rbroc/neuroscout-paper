@@ -119,7 +119,8 @@ def plot_contrast_by_analysis(analyses, contrasts=None, models=None,
         for c, c_type in unique_contrasts:
             analysis_list = [el[1] for el in model_list if el[0] == c]
             f, axarr = plt.subplots(nrows=len(analysis_list), ncols=1, figsize=figsize)
-            [axi.set_axis_off() for axi in axarr.ravel()]
+            if len(analysis_list) > 1:
+                [axi.set_axis_off() for axi in axarr.ravel()]
             
             for idx, analysis in enumerate(analysis_list):
                 title = analysis[0][1]

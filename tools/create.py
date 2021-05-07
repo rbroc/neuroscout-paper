@@ -60,7 +60,7 @@ def create_incremental_models(predictors, confounds, include_single_pred=False,
     return models
 
 
-def create_single_models(predictors, confounds, control=None, datasets=None, transformations=None):
+def create_single_models(predictors, confounds=None, control=None, datasets=None, transformations=None):
     """ Create single predictor models for all the datasets in Neuroscout given a list of predictors
         Args:
             predictors: list of predictor names
@@ -71,6 +71,9 @@ def create_single_models(predictors, confounds, control=None, datasets=None, tra
             transformation: see PyBids specification
     """
     models = {}
+    if confounds is None:
+        confounds = []
+ 
     if datasets is None:
         datasets = ALL_DATASETS
     for predictor in predictors:
