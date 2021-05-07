@@ -22,7 +22,7 @@ def find_image(con_name, hash_id, results_dir=None, load=True, target='t'):
         results_dir = RESULTS_DIR
 
     name = snake_to_camel(con_name)
-    images = results_dir / hash_id / 'fitlins'
+    images = results_dir / f"neuroscout-{hash_id}" / 'fitlins'
 
     ses_dirs = [a for a in images.glob('ses*') if a.is_dir()]
     if ses_dirs:  # If session, look for stat files in session folder
