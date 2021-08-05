@@ -85,13 +85,13 @@ def create_single_models(predictors, confounds=None, control=None, datasets=None
                 subset_transformations = [t for t in transformations if predictor in t["Input"]]
             else:
                 subset_transformations = None
-            for task_id in ds_values['tasks']:
+            for task_name in ds_values['tasks']:
                 try:
-                    models[predictor][ds_name][task_id] = api.analyses.create_analysis(
+                    models[predictor][ds_name][task_name] = api.analyses.create_analysis(
                         name=predictor, 
                         dataset_name=ds_name, 
                         predictor_names=confounds + preds,
-                        task=task_id,
+                        tasks=task_name,
                         transformations=subset_transformations,
                         hrf_variables=preds,
                         dummy_contrasts='hrf')
