@@ -11,6 +11,15 @@ for dataset in api.datasets.get():
         'tasks': [task['name'] for task in dataset['tasks']]}
 
 
+def _get_datasets(datasets):
+    if datasets is None:
+        datasets = ALL_DATASETS
+    elif isinstance(datasets, list):
+        datasets = {d:v for d,v in ALL_DATASETS.items() if d in datasets}
+        
+    return datasets
+
+
 def create_incremental_models(predictors, confounds, include_single_pred=False, 
                               datasets=None, transformations=None):
     """ Create incremental models for all the datasets in Neuroscout given a list of predictors 
@@ -21,8 +30,7 @@ def create_incremental_models(predictors, confounds, include_single_pred=False,
         datasets: dictionary with dataset names as keys, dataset id as values
         transformation: see PyBids specification
     """
-    if datasets is None:
-        datasets = ALL_DATASETS
+    datasets = _get_datasets(datasets)
         
     # Listfy list of lists
     predictors = [p if isinstance(p, list) else [p] for p in predictors]        
@@ -74,8 +82,8 @@ def create_single_models(predictors, confounds=None, control=None, datasets=None
     if confounds is None:
         confounds = []
  
-    if datasets is None:
-        datasets = ALL_DATASETS
+    datasets = _get_datasets(datasets)
+
     for predictor in predictors:
         models[predictor] = {}
         preds = [predictor] if control is None else [predictor] + control
