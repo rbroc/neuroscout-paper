@@ -23,3 +23,4 @@ for ds in subjects.keys():
     metrics[ds]['avg_scan_time'] = np.mean(list(subjects[ds].values()))
 
 json.dump(metrics, fp=open('dataset_metrics.json', 'w'))
+
