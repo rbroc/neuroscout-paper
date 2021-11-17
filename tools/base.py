@@ -9,7 +9,7 @@ import numpy as np
 api = Neuroscout()
 
 RESULTS_DIR = Path('/media/hyperdrive/neuroscout-cli/output/')
-
+DOWNLOAD_DIR = Path('/media/hyperdrive/neuroscout-cli/neurovault_dl/')
 
 def snake_to_camel(string):
     words = string.split('_')
@@ -22,7 +22,7 @@ def find_image(con_name, hash_id, results_dir=None, load=True, target='t'):
         results_dir = RESULTS_DIR
 
     name = snake_to_camel(con_name)
-    images = results_dir / hash_id / 'fitlins'
+    images = results_dir / f"neuroscout-{hash_id}" / 'fitlins'
 
     ses_dirs = [a for a in images.glob('ses*') if a.is_dir()]
     if ses_dirs:  # If session, look for stat files in session folder
@@ -38,7 +38,6 @@ def find_image(con_name, hash_id, results_dir=None, load=True, target='t'):
             return path
     else:
         return None
-
 
 def reverse(di, check_status=False):
     rev = {}
