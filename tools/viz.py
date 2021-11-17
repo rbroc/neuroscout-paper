@@ -10,28 +10,33 @@ import matplotlib.pyplot as plt
 import altair as alt
 api = Neuroscout()
 
-RESULTS_DIR = Path('/media/hyperdrive/neuroscout-cli/output/')
+DOWNLOAD_DIR = Path('/media/hyperdrive/neuroscout-cli/neurovault_dl')
 
-
-def plot_contrast(contrast, analysis, results_dir=None, title=None,
+def plot_contrast(contrast, analysis, title=None,
                   cut_coords=range(-25, 55, 12), display_mode='z',
-                  target='t', threshold=1.96, axes=None, **kwargs):
+                  stat='t', threshold=1.96, axes=None, plot_kwargs={}, 
+                  **load_kwargs):
     """Plot contrast image for a single contrast image"""
-    hash_id = analysis.hash_id
     dataset = api.datasets.get(analysis.dataset_id)['name']
     if title is None:
         title = f"{dataset}-{analysis.name}-{contrast}"
-
-    img = find_image(contrast, hash_id, results_dir=results_dir, target=target)
-    if img:
-        p = niplt.plot_stat_map(
-            img,
-            display_mode=display_mode, 
-            cut_coords=cut_coords,
-            threshold=threshold,
-            axes=axes,
-            **kwargs)
-        p.title(title, x=-.0, y=1.1, color='black', bgcolor='white', fontsize=12)
+    
+    plot_args = dict(
+        display_mode=display_mode,
+        cut_coords=cut_coords,
+        threshold=threshold,
+        axes=axes,
+    )
+    
+    plot_args.update(plot_kwargs)
+            
+    ps = analysis.plot_uploads(
+        stat=stat, plot_args=plot_args, 
+        download_dir=DOWNLOAD_DIR, **load_kwargs
+    )
+    
+    if ps:
+        ps[0].title(title, x=-.0, y=1.1, color='black', bgcolor='white', fontsize=12)
     else:
         print(f"No image for {title}")
 

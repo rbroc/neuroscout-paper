@@ -97,11 +97,9 @@ def create_dset(
     return dset
 
 
-def snake_to_camel(text):
-    """Convert snake_case to camelCase--needed when downloading some NV images."""
-    cc = "".join(x.capitalize() or "_" for x in text.split("_"))
-    cc = re.sub("([\.\-])(\w)", lambda x: x.group(1) + x.group(2).capitalize(), cc)
-    return cc[0].lower() + cc[1:]
+def snake_to_camel(string):
+    words = string.split('_')
+    return words[0] + ''.join(word.title() for word in words[1:])
 
 
 def process_set(
@@ -127,6 +125,9 @@ def process_set(
 
     if plot_kwargs is None:
         plot_kwargs = {}
+     
+    if collection_kwargs is None:
+        collection_kwargs = {}
 
     # Retrieve data if needed
     if json_data is not None:
@@ -168,7 +169,10 @@ def process_set(
                     if not filename.exists():
                         filename = analysis_dir / f"{a_id} (Case Conflict).json"
                     analysis = json.load(open(filename, "r"))
-                    if analysis["model"]["Input"]["Task"][0] not in exclude:
+                    task = analysis["model"]["Input"]["Task"]
+                    if isinstance(task, list):
+                        task = task[0]
+                    if task not in exclude:
                         filtered_ids.append(id_)
                 return filtered_ids
 
@@ -192,7 +196,8 @@ def process_set(
             ma_dir = Path("./ma-maps")
             ma_dir.mkdir(exist_ok=True)
             for i, fxn in enumerate(fx_names):
-                ma_path = Path(".") / "ma-maps" / (name + "-" + fxn + ".nii.gz")
+                filename = name[:200] + "-" + fxn
+                ma_path = Path(".") / "ma-maps" / (filename + ".nii.gz")
                 eff_imgs[i].to_filename(ma_path)
 
         if plot:

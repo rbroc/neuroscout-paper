@@ -9,7 +9,7 @@ import numpy as np
 api = Neuroscout()
 
 RESULTS_DIR = Path('/media/hyperdrive/neuroscout-cli/output/')
-
+DOWNLOAD_DIR = Path('/media/hyperdrive/neuroscout-cli/neurovault_dl/')
 
 def snake_to_camel(string):
     words = string.split('_')
@@ -38,7 +38,6 @@ def find_image(con_name, hash_id, results_dir=None, load=True, target='t'):
             return path
     else:
         return None
-
 
 def reverse(di, check_status=False):
     rev = {}

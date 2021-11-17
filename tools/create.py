@@ -53,18 +53,22 @@ def create_incremental_models(predictors, confounds, include_single_pred=False,
         for ds_name, ds_values in datasets.items(): 
             d_tasks = ds_values['tasks'] 
             models[model_name][ds_name] = {}
-            for task_id in d_tasks:
+            if ds_name == 'NaturalisticNeuroimagingDatabase':
+                cf = []
+            else:
+                cf = confounds
+            for task_name in d_tasks:
                 try:
-                    models[model_name][ds_name][task_id] = api.analyses.create_analysis(
+                    models[model_name][ds_name][task_name] = api.analyses.create_analysis(
                         name=model_name, 
                         dataset_name=ds_name, 
-                        predictor_names=confounds + preds,
-                        task=task_id,
+                        predictor_names=cf + preds,
+                        tasks=task_name,
                         transformations=subset_trans,
                         hrf_variables=preds,
                         dummy_contrasts='hrf') 
                 except ValueError as e:
-                    print(f"Dataset: {ds_name}, Predictors: {preds}", e)
+                    print(f"Dataset: {ds_name}, Task: {task_name}, Predictors: {preds}", e)
     return models
 
 
@@ -88,6 +92,10 @@ def create_single_models(predictors, confounds=None, control=None, datasets=None
         models[predictor] = {}
         preds = [predictor] if control is None else [predictor] + control
         for ds_name, ds_values in datasets.items(): 
+            if ds_name == 'NaturalisticNeuroimagingDatabase':
+                cf = []
+            else:
+                cf = confounds
             models[predictor][ds_name] = {}
             if transformations:
                 subset_transformations = [t for t in transformations if predictor in t["Input"]]
@@ -98,34 +106,37 @@ def create_single_models(predictors, confounds=None, control=None, datasets=None
                     models[predictor][ds_name][task_name] = api.analyses.create_analysis(
                         name=predictor, 
                         dataset_name=ds_name, 
-                        predictor_names=confounds + preds,
+                        predictor_names=cf + preds,
                         tasks=task_name,
                         transformations=subset_transformations,
                         hrf_variables=preds,
                         dummy_contrasts='hrf')
                 except ValueError as e:
-                    print(f"Dataset: {ds_name}, Predictors: {predictor}", e)
+                    print(f"Dataset: {ds_name}, Task: {task_name}, Predictors: {preds}", e)
     return models
 
 
 def create_set_models(predictors, confounds, name, transformations=None, datasets=None):
     """ Create same model with set of predictors + confounds for all datasets """
     models = {}
-    if datasets is None:
-        datasets = ALL_DATASETS
+    datasets = _get_datasets(datasets)
 
     for ds_name, ds_values in datasets.items(): 
+        if ds_name == 'NaturalisticNeuroimagingDatabase':
+            cf = []
+        else:
+            cf = confounds
         models[ds_name] = {}
-        for task_id in ds_values['tasks'] : #loop over tasks
+        for task_name in ds_values['tasks'] : #loop over tasks
             try: # create an analysis
-                models[ds_name][task_id] = api.analyses.create_analysis(
+                models[ds_name][task_name] = api.analyses.create_analysis(
                     name=name, 
                     dataset_name=ds_name, 
-                    predictor_names=confounds + predictors,
-                    task=task_id,
+                    predictor_names=cf + predictors,
+                    tasks=task_name,
                     transformations=transformations,
                     hrf_variables=predictors,
                     dummy_contrasts='hrf')
             except ValueError as e: # print out error if build fails
-                print(f"Dataset: {ds_name}, Predictors: {str(predictors)}", e)
+                    print(f"Dataset: {ds_name}, Task: {task_name}, Predictors: {predictors}", e)
     return models
