@@ -1,8 +1,6 @@
 from pathlib import Path
-from nilearn import plotting as niplt
 from pyns import Neuroscout
-from .base import (find_image, flatten_collection, 
-                    _extract_regressors, compute_metrics)
+from .base import _extract_regressors
 import pandas as pd
 import numpy as np
 import seaborn as sns
@@ -11,6 +9,66 @@ import altair as alt
 api = Neuroscout()
 
 DOWNLOAD_DIR = Path('/media/hyperdrive/neuroscout-cli/neurovault_dl')
+
+def _extract_regressors(model_dict, models=None, datasets=None, predictors=None):
+    """ Plot distributions of variables in all models
+    Args:
+        model_dict: hierarchical dictionary of models
+        models (list): model subset
+        datasets: dataset subset
+        predictors: predictor subset
+    """
+    all_pred = pd.DataFrame()
+    for model_name, ds_dict in model_dict.items():
+        pred_df = pd.DataFrame()
+        for ds, task_dict in ds_dict.items():
+            if datasets and ds not in datasets:
+                continue
+            for task, model in task_dict.items():
+                dmat = pd.read_csv(model.get_design_matrix()[0], ',')
+                for pred in model_name.split('+'):
+                    if (predictors and pred not in predictors) or models and (model_name not in models):
+                        continue
+                    pred_df['values'] = dmat[pred]
+                    pred_df['predictor'] = pred
+                    pred_df['dataset'] = ds
+                    pred_df['task'] = task
+                    pred_df['model'] = model_name
+                    all_pred = pd.concat([all_pred, pred_df], axis=0)
+    all_pred['scan'] = all_pred.groupby(['predictor', 'dataset', 'task', 'model']).cumcount()
+    return all_pred
+
+
+def compute_metrics(model_dict=None, df=None, aggfunc=[np.mean, np.max, np.min, np.std],
+                              models=None, datasets=None, predictors=None, return_df=False):
+    """ Compute summary metrics for regressors
+    Args:
+        model_dict: hierarchical dictionary of models
+        df: precomputed regressor values from base._extract_regressors
+        aggfunc: list of summary functions passed to pd.pivot_table (e.g. np.mean)
+        models (optional): model subset
+        datasets (optional): dataset subset
+        predictors (optional): predictor subset
+        return_df (bool): whether to return regressor df if computed within the function
+    """
+    if df is None:
+        df = _extract_regressors(model_dict, models, datasets, predictors)
+    else:
+        if models:
+            df = df[df['model'].isin(models)]
+        if predictors:
+            df = df[df['predictor'].isin(predictors)]
+        if datasets:
+            df = df[df['dataset'].isin(datasets)]   
+    agg_df = df.pivot_table(values='values', 
+                            index=['model', 'predictor', 'dataset', 'task'], 
+                            aggfunc=aggfunc).reset_index()
+    agg_df.columns = agg_df.columns.droplevel(1)
+    if return_df:
+        return df, agg_df
+    else:
+        return agg_df
+
 
 def plot_contrast(contrast, analysis, title=None,
                   cut_coords=range(-25, 55, 12), display_mode='z',
