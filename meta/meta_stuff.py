@@ -26,9 +26,9 @@ from tools.base import flatten_collection
 import nilearn.plotting as plotting
 
 
-### Add download option to create_dataset and figure out how to go from nested structure to create dataset
 def create_dataset(
     neuroscout_ids,
+    img_dir=None,
     **collection_kwargs
     ):
     """Download maps from NeuroVault and save them locally,
@@ -63,7 +63,7 @@ def create_dataset(
     dset = convert_neurovault_to_dataset(
         nv_colls,
         contrasts,
-        img_dir=str(Path("./images").absolute()),
+        img_dir=img_dir,
         mask=mask_img,
     )
 
@@ -78,7 +78,7 @@ def snake_to_camel(string):
 
 def analyze_dataset(
     neuroscout_dict,
-    analysis_name,
+    analysis_name=None,
     contrast_name=None,
     force_recreate=False,
     plot=True,
@@ -98,19 +98,24 @@ def analyze_dataset(
     if plot_kwargs is None:
         plot_kwargs = {}
 
-
     #  Make directories if needed
     ds_dir = Path("./datasets")
     ds_dir.mkdir(exist_ok=True)
 
     ids = [id_ for _, id_ in flatten_collection(neuroscout_dict)]
 
-    save_path = ds_dir / f"{name}_dset.pkl"
+    # Default to first analysis name in Neuroscout
+    if analysis_name is None:
+        analysis_name = Neuroscout().analysis.get(ids[0])['name']
+
+    save_path = ds_dir / f"{analysis_name}_dset.pkl"
 
     if save_path.exists() and not force_recreate:
         dataset = Dataset.load(str(save_path))
     else:
-        dataset = create_dataset(ids, **collection_kwargs)
+        dataset = create_dataset(ids, 
+            img_dir=str(Path("./images").absolute()),
+            **collection_kwargs)
         dataset.save(save_path)
 
     ## Need to add slicing to run only on each effect at the time
