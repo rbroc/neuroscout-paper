@@ -23,3 +23,20 @@ def dump_collection(c_dict, fname):
 
     with open(fname, 'w') as f:
         json.dump(di, f)
+
+
+ALL_DATASETS = {} 
+for dataset in api.datasets.get():
+    ALL_DATASETS[dataset['name']] = {
+        'id':  dataset['id'],
+        'tasks': [task['name'] for task in dataset['tasks']]}
+
+
+def _get_datasets(datasets):
+    """ Given a list of dataset names, get dataset IDs """
+    if datasets is None:
+        datasets = ALL_DATASETS
+    elif isinstance(datasets, list):
+        datasets = {d:v for d,v in ALL_DATASETS.items() if d in datasets}
+        
+    return datasets
