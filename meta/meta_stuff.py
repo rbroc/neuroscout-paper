@@ -22,13 +22,13 @@ from pyns import Neuroscout
 from nilearn.datasets import load_mni152_template
 from nilearn.image import resample_to_img
 from nilearn import masking
+from tools.base import flatten_collection
 import nilearn.plotting as plotting
 
 
 ### Add download option to create_dataset and figure out how to go from nested structure to create dataset
 def create_dataset(
     neuroscout_ids,
-    name=None,
     **collection_kwargs
     ):
     """Download maps from NeuroVault and save them locally,
@@ -48,7 +48,7 @@ def create_dataset(
         if not uploads:
             skipped.append(id_)
         else:
-            nv_colls[analysis.hash_id] = collections[-1]["collection_id"]
+            nv_colls[analysis.hash_id] = uploads[-1]["collection_id"]
             
     if skipped:
         print(f"Skipped ids: {' '.join(skipped)} due to no matching collections")
@@ -59,8 +59,6 @@ def create_dataset(
     analysis = ns.analyses.get_analysis(neuroscout_ids[0])
     dummy_conditions = analysis.model['Steps'][0]['DummyContrasts']['Conditions']
     contrasts = {snake_to_camel(con): snake_to_camel(con) for con in dummy_conditions}
-    if name is None:
-        name = analysis.name
 
     dset = convert_neurovault_to_dataset(
         nv_colls,
@@ -70,14 +68,6 @@ def create_dataset(
     )
 
     # Map neuroscout meta-data to dataset 
-
-    #  Make directories if needed
-    ds_dir = Path("./datasets")
-    ds_dir.mkdir(exist_ok=True)
-
-    # Add option to load at the beginning of this function
-    dset.save(ds_dir / f"{name}_dset.pkl")
-
     return dset
 
 
@@ -87,11 +77,14 @@ def snake_to_camel(string):
 
 
 def analyze_dataset(
-    name,
-    dataset,
+    neuroscout_dict,
+    analysis_name,
+    contrast_name=None,
+    force_recreate=False,
     plot=True,
     stat="z",
     analysis_kwargs=None,
+    collection_kwargs=None,
     plot_kwargs=None,
     save_maps=True,
     ):
@@ -99,14 +92,29 @@ def analyze_dataset(
     if analysis_kwargs is None:
         analysis_kwargs = {}
 
+    if collection_kwargs is None:
+        collection_kwargs = {}
+
     if plot_kwargs is None:
         plot_kwargs = {}
 
 
-    ## Need to add slicing to run only on each effect at the time no?
-    
-    fxn = "effect_name" ### Need to see if I can get this from contrasts
+    #  Make directories if needed
+    ds_dir = Path("./datasets")
+    ds_dir.mkdir(exist_ok=True)
 
+    ids = [id_ for _, id_ in flatten_collection(neuroscout_dict)]
+
+    save_path = ds_dir / f"{name}_dset.pkl"
+
+    if save_path.exists() and not force_recreate:
+        dataset = Dataset.load(str(save_path))
+    else:
+        dataset = create_dataset(ids, **collection_kwargs)
+        dataset.save(save_path)
+
+    ## Need to add slicing to run only on each effect at the time
+    
     meta_result = ibma.DerSimonianLaird(resample=True).fit(dataset)
 
     eff_img = meta_result.get_map(stat)
@@ -120,7 +128,7 @@ def analyze_dataset(
     if save_maps:
         ma_dir = Path("./ma-maps")
         ma_dir.mkdir(exist_ok=True)
-        filename = name[:200] + "-" + fxn
+        filename = analysis_name[:200] + "-" + contrast_name
         ma_path = Path(".") / "ma-maps" / (filename + ".nii.gz")
         eff_img.to_filename(ma_path)
 
