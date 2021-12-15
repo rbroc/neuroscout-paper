@@ -1,11 +1,9 @@
 from pathlib import Path
 from pyns import Neuroscout
-from .base import _extract_regressors
 import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-import altair as alt
 api = Neuroscout()
 
 DOWNLOAD_DIR = Path('/media/hyperdrive/neuroscout-cli/neurovault_dl')
