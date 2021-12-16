@@ -8,6 +8,7 @@ from pyns.models.utils import snake_to_camel
 from nilearn.datasets import load_mni152_template
 from nilearn import masking
 from nilearn import plotting as niplt
+import pandas as pd
 
 warnings.filterwarnings("ignore")
 
@@ -26,7 +27,7 @@ def create_dataset(neuroscout_ids, img_dir=None, **collection_kwargs):
 
     ns = Neuroscout()
     nv_colls = {}
-
+    annotations = []
     skipped = []
     for id_ in neuroscout_ids:
         analysis = ns.analyses.get_analysis(id_)
@@ -36,6 +37,16 @@ def create_dataset(neuroscout_ids, img_dir=None, **collection_kwargs):
             skipped.append(id_)
         else:
             nv_colls[analysis.hash_id] = upload[0]['collection_id']
+            task_name = analysis.model['Input']['Task']
+            if len(task_name) == 1:
+                task_name = task_name[0]
+            dataset_name = ns.datasets.get(analysis.dataset_id)['name']
+            annotations.append({
+                'study_id': f'study-{analysis.hash_id}',
+                'dataset': dataset_name, 
+                'task': task_name
+                }
+            )   
             
     if skipped:
         print(f"Skipped ids: {' '.join(skipped)} due to no matching collections")
@@ -56,17 +67,32 @@ def create_dataset(neuroscout_ids, img_dir=None, **collection_kwargs):
         mask=mask_img,
     )
 
+    # add dataset and task annotations to dataset
+    annotations =  pd.DataFrame(annotations)
+    dset.annotations = dset.annotations.merge(annotations)
+
     # Map neuroscout meta-data to dataset 
     return dset
 
 
 def _slice_meta_plot_save(
-    dataset, contrast_name, analysis_name, save_maps=True,
-    plot=True, stat='z', **plot_kwargs):
+    dataset, analysis_name, contrast_name, exclude_datasets=None, exclude_tasks=None,
+    save_maps=True, plot=True, stat='z', **plot_kwargs):
+    """ Run meta-analysis on dataset on a specific contrast """
 
     # Slice
     dataset = dataset.slice(
        ids=dataset.images.id[dataset.images.contrast_id == contrast_name])
+
+    if exclude_datasets:
+        dataset = dataset.slice(
+            ids=dataset.annotations.id[ \
+                dataset.annotations.dataset.isin(exclude_datasets) == False])
+
+    if exclude_tasks:
+        dataset = dataset.slice(
+            ids=dataset.annotations.id[ \
+                dataset.annotations.task.isin(exclude_tasks) == False])
 
     # Run
     meta_result = ibma.DerSimonianLaird(resample=True).fit(dataset)
@@ -98,6 +124,8 @@ def analyze_dataset(
     neuroscout_ids,
     analysis_name=None,
     contrasts=None,
+    exclude_datasets=None,
+    exclude_tasks=None,
     force_recreate=False,
     plot=True,
     stat="z",
@@ -115,6 +143,9 @@ def analyze_dataset(
 
     if plot_kwargs is None:
         plot_kwargs = {}
+
+    if isinstance(neuroscout_ids[0], dict):
+        neuroscout_ids = [a['hash_id'] for a in neuroscout_ids]
 
     # Make directories if needed
     ds_dir = Path("./datasets")
@@ -145,6 +176,7 @@ def analyze_dataset(
         eff_imgs.append(
             _slice_meta_plot_save(
                 dataset, contrast_name, analysis_name, save_maps=save_maps,
+                exclude_datasets=exclude_datasets, exclude_tasks=exclude_tasks,
                 plot=plot, stat=stat, **plot_kwargs)
         )    
 
