@@ -175,7 +175,7 @@ def analyze_dataset(
     for contrast_name in contrasts:
         eff_imgs.append(
             _slice_meta_plot_save(
-                dataset, contrast_name, analysis_name, save_maps=save_maps,
+                dataset, analysis_name, contrast_name, save_maps=save_maps,
                 exclude_datasets=exclude_datasets, exclude_tasks=exclude_tasks,
                 plot=plot, stat=stat, **plot_kwargs)
         )    
