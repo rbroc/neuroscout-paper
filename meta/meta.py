@@ -120,7 +120,7 @@ def _slice_meta_plot_save(
     return eff_img
 
 
-def analyze_dataset(
+def analyze_collection(
     neuroscout_ids,
     analysis_name=None,
     contrasts=None,
