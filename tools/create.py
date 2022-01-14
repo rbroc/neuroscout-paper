@@ -1,5 +1,5 @@
 from pyns import Neuroscout
-from utils import _get_datasets
+from .utils import _get_datasets
 from collections import defaultdict
 api = Neuroscout()
 

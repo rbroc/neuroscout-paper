@@ -9,7 +9,7 @@ def load_collection(fname):
     with open(fname) as f:
         c_dict = json.load(f)
 
-    for set_name, analyses in c_dict:
+    for set_name, analyses in c_dict.items():
         for an in analyses:
             an['analysis'] = api.analyses.get_analysis(an['hash_id'])
     return c_dict
@@ -17,12 +17,12 @@ def load_collection(fname):
 
 def dump_collection(c_dict, fname):
     """ Dump dictionary to json, removing analysis object """
-    for set_name, analyses in c_dict:
+    for set_name, analyses in c_dict.items():
         for an in analyses:
-           an.pop('analysis')
+            an.pop('analysis')
 
     with open(fname, 'w') as f:
-        json.dump(di, f)
+        json.dump(c_dict, f)
 
 
 ALL_DATASETS = {} 

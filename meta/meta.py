@@ -38,13 +38,15 @@ def create_dataset(neuroscout_ids, img_dir=None, **collection_kwargs):
         else:
             nv_colls[analysis.hash_id] = upload[0]['collection_id']
             task_name = analysis.model['Input']['Task']
+            n_subjects = len(analysis.model['Input']['Subject'])
             if len(task_name) == 1:
                 task_name = task_name[0]
             dataset_name = ns.datasets.get(analysis.dataset_id)['name']
             annotations.append({
                 'study_id': f'study-{analysis.hash_id}',
                 'dataset': dataset_name, 
-                'task': task_name
+                'task': task_name,
+                'n_subjects': n_subjects
                 }
             )   
             
