@@ -70,7 +70,7 @@ def compute_metrics(model_dict=None, df=None, aggfunc=[np.mean, np.max, np.min, 
 
 def plot_contrast(contrast, analysis, title=None,
                   cut_coords=range(-25, 55, 12), display_mode='z',
-                  stat='t', threshold=1.96, axes=None, plot_kwargs={}, 
+                  image_filters={'stat':'t'}, threshold=1.96, axes=None, plot_kwargs={}, 
                   **load_kwargs):
     """Plot contrast image for a single contrast image"""
     dataset = api.datasets.get(analysis.dataset_id)['name']
@@ -87,7 +87,7 @@ def plot_contrast(contrast, analysis, title=None,
     plot_args.update(plot_kwargs)
             
     ps = analysis.plot_uploads(
-        stat=stat, plot_args=plot_args, 
+        image_filters=image_filters, plot_args=plot_args, 
         download_dir=DOWNLOAD_DIR, **load_kwargs
     )
     
