@@ -9,7 +9,11 @@ datasets = api.datasets.get()
 subjects = {}
 for ds in datasets:
     subjects[ds['name']] = collections.defaultdict(int)
-    tasks = [t['id'] for t in ds['tasks']] # potentially exclude unused tasks
+    exclude = []
+    if ds['name'] == 'narratives':
+        exclude = ['notthefalllongscram', 'notthefallshortscram', 'prettymouth']
+     
+    tasks = [t['id'] for t in ds['tasks'] if t['name'] not in exclude]
     for t in tasks:
         for r in api.runs.get(task_id=t):
             s = r['subject']
