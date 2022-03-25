@@ -7,17 +7,17 @@ Analyses in the paper required running models at the individual dataset / task l
 The analyses are organized by Figure in the manuscript. Most analyses requires first running single dataset results and then performing a meta-analysis for the final figure. In the top level directory, you can find the notebooks to create and 
 
 Figure 1)
-Methods Figure.ipynb
+analyses/0 - figure 1 methods.ipynb 
 
 Figure 3-4)
-analyses/01 - basic features.ipynb
-meta/01 - basic features.ipynb
+analyses/1 - single predictor models.ipynb 
+meta/1 - single predictor models.ipynb 
 
 Figure 5)
-analyses/02 - face features.ipynb
-meta/02 - face features.ipynb
+analyses/2 - face features.ipynb
+meta/2 - face features.ipynb
 
 Figure 6)
-analyses/03 - language features.ipynb
-meta/03 - language features.ipynb
+analyses/3 - language features.ipynb
+meta/3 - language features.ipynb
 
