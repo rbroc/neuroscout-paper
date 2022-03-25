@@ -30,7 +30,7 @@ def dump_collection(c_dict, fname):
 
 
 def t_to_z(t_map, dof):
-    # Cobbled together from nilearn.glm
+    # From nilearn.glm
     old_shape = t_map.get_fdata().shape
     data = t_map.get_fdata().flatten()
     new_img = deepcopy(t_map)
